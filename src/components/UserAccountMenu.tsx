@@ -1,19 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Button,
-  Divider,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Typography,
-} from "@mui/material";
+import Link from "next/link";
+import { Button, Divider, ListItemText, Menu, MenuItem } from "@mui/material";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import LogoutIcon from "@mui/icons-material/Logout";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
 import { signOut } from "next-auth/react";
+import { APP_CONFIG } from "@/config";
 
 interface UserAccountMenuProps {
   label: string;
@@ -67,29 +62,16 @@ export default function UserAccountMenu({ label }: UserAccountMenuProps) {
           },
         }}
       >
-        <Typography
-          variant="caption"
-          sx={{
-            display: "block",
-            px: 2,
-            py: 1.25,
-            color: "rgba(255,255,255,0.65)",
-            letterSpacing: 0.4,
-            textTransform: "uppercase",
-          }}
+        <MenuItem
+          component={Link}
+          href={APP_CONFIG.routes.profile}
+          onClick={handleClose}
         >
-          Signed in as {label}
-        </Typography>
-        <Divider sx={{ borderColor: "rgba(255,255,255,0.08)" }} />
-
-        <MenuItem disabled onClick={handleClose}>
           <PersonOutlineIcon fontSize="small" sx={{ mr: 1.5, opacity: 0.7 }} />
           <ListItemText
             primary="View profile"
-            secondary="Coming soon"
             slotProps={{
               primary: { sx: { color: "rgba(255,255,255,0.85)" } },
-              secondary: { sx: { color: "rgba(255,255,255,0.5)" } },
             }}
           />
         </MenuItem>

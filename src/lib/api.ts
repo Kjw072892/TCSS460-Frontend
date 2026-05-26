@@ -1,4 +1,4 @@
-const API_BASE = "https://tcss460-team-6-api.onrender.com";
+export const API_BASE = "https://tcss460-team-6-api.onrender.com";
 
 export class ApiError extends Error {
   status: number;
