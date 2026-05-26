@@ -111,7 +111,9 @@ export default async function HomePage() {
               )}
 
               {user ? (
-                <UserAccountMenu label={user.name || user.email || "Signed in"} />
+                <UserAccountMenu
+                  label={user.name || user.email || "Signed in"}
+                />
               ) : (
                 <HomeSignInButton callbackUrl={APP_CONFIG.routes.home} />
               )}

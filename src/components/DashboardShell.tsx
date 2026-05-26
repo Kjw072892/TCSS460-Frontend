@@ -23,10 +23,7 @@ import Logo from "@/components/Logo";
 import SignInButton from "@/components/SignInButton";
 import UserAccountMenu from "@/components/UserAccountMenu";
 import { APP_CONFIG } from "@/config";
-import {
-  DEV_AUTH_SIMULATION_ENABLED,
-  getEffectiveUser,
-} from "@/lib/dev-user";
+import { DEV_AUTH_SIMULATION_ENABLED, getEffectiveUser } from "@/lib/dev-user";
 
 /**
  * App shell rendered by the `(dashboard)` route group: top AppBar with
