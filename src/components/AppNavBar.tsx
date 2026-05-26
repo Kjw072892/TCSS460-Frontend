@@ -10,9 +10,10 @@ import {
 import MovieIcon from "@mui/icons-material/Movie";
 
 import HomeSignInButton from "@/components/HomeSignInButton";
-import SignOutButton from "@/components/SignOutButton";
+import UserAccountMenu from "@/components/UserAccountMenu";
 import { APP_CONFIG } from "@/config";
 import { auth } from "@/lib/auth";
+import { getEffectiveUser } from "@/lib/dev-user";
 
 interface AppNavBarProps {
   callbackUrl?: string;
@@ -22,6 +23,7 @@ export default async function AppNavBar({
   callbackUrl = APP_CONFIG.routes.home,
 }: AppNavBarProps) {
   const session = await auth();
+  const user = getEffectiveUser(session?.user);
 
   return (
     <AppBar
@@ -77,21 +79,8 @@ export default async function AppNavBar({
             >
               Search
             </Button>
-            {session?.user ? (
-              <>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "text.secondary",
-                    fontWeight: "medium",
-                    ml: 1,
-                    display: { xs: "none", md: "block" },
-                  }}
-                >
-                  {session.user.name || session.user.email}
-                </Typography>
-                <SignOutButton />
-              </>
+            {user ? (
+              <UserAccountMenu label={user.name || user.email || "Signed in"} />
             ) : (
               <HomeSignInButton callbackUrl={callbackUrl} />
             )}

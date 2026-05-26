@@ -9,14 +9,15 @@ import {
 import MovieIcon from "@mui/icons-material/Movie";
 
 import HomeSignInButton from "@/components/HomeSignInButton";
-import SignOutButton from "@/components/SignOutButton";
 import MediaCarousel from "@/components/CarouselTemplate";
 import SearchForm from "@/components/SearchForm";
 import GenreRow, { groupByGenre } from "@/components/GenreRow";
+import UserAccountMenu from "@/components/UserAccountMenu";
 import { getPopularMovies, getPopularTVShows } from "@/lib/fetchAPI";
 import { popularMoviesMultiPage, popularTVMultiPage } from "@/lib/media-api";
 import { auth } from "@/lib/auth";
 import { APP_CONFIG } from "@/config";
+import { getEffectiveUser } from "@/lib/dev-user";
 import { MovieCard, TVShowCard } from "@/types/backendObjects";
 
 /**
@@ -24,6 +25,7 @@ import { MovieCard, TVShowCard } from "@/types/backendObjects";
  */
 export default async function HomePage() {
   const session = await auth();
+  const user = getEffectiveUser(session?.user);
 
   let movies: MovieCard[] = [];
   let tvShows: TVShowCard[] = [];
@@ -95,7 +97,7 @@ export default async function HomePage() {
               alignItems="center"
               sx={{ order: { xs: 2, md: 3 } }}
             >
-              {session?.user && (
+              {user && (
                 <Typography
                   variant="body2"
                   sx={{
@@ -104,12 +106,12 @@ export default async function HomePage() {
                     display: { xs: "none", md: "block" },
                   }}
                 >
-                  Welcome, {session.user.name || session.user.email}
+                  Welcome
                 </Typography>
               )}
 
-              {session ? (
-                <SignOutButton />
+              {user ? (
+                <UserAccountMenu label={user.name || user.email || "Signed in"} />
               ) : (
                 <HomeSignInButton callbackUrl={APP_CONFIG.routes.home} />
               )}

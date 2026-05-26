@@ -8,6 +8,7 @@ import SearchPagination from "@/components/SearchPagination";
 import { ApiError } from "@/lib/api";
 import { auth } from "@/lib/auth";
 import { APP_CONFIG } from "@/config";
+import { getEffectiveUser } from "@/lib/dev-user";
 import type { MovieSummary, TVSummary } from "@/types/media";
 
 interface PageProps {
@@ -23,6 +24,7 @@ interface PageProps {
 
 export default async function SearchPage({ searchParams }: PageProps) {
   const session = await auth();
+  const user = getEffectiveUser(session?.user);
   const {
     q,
     page = "1",
@@ -128,12 +130,8 @@ export default async function SearchPage({ searchParams }: PageProps) {
               initialTV={includeTV}
               initialYear={year}
               initialGenreId={genreId}
-              signedInLabel={
-                session?.user?.name || session?.user?.email || undefined
-              }
-              signInCallbackUrl={
-                !session ? APP_CONFIG.routes.search : undefined
-              }
+              signedInLabel={user?.name || user?.email || undefined}
+              signInCallbackUrl={!user ? APP_CONFIG.routes.search : undefined}
             />
           </Box>
 

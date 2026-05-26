@@ -50,6 +50,8 @@ export default function MediaCarousel({
   );
   const isWheelScrollingRef = useRef(false);
   const hoverCenterIndexRef = useRef<number | null>(null);
+  const pointerClientPosRef = useRef({ x: 0, y: 0 });
+  const hoverLockPointerRef = useRef<{ x: number; y: number } | null>(null);
 
   const itemCount = items.length;
   const cardWidth = 180;
@@ -125,7 +127,7 @@ export default function MediaCarousel({
             return target;
           }
 
-          return prev + delta * 0.35;
+          return prev + delta * 0.18;
         });
       } else if (!isEdgeScrolling && snapPendingRef.current && totalWidth > 0) {
         setOffset((prev) => {
@@ -156,6 +158,8 @@ export default function MediaCarousel({
   }, [infinite, normalizeOffset, spacing, totalWidth]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
+    pointerClientPosRef.current = { x: e.clientX, y: e.clientY };
+
     if (carouselRef.current) {
       const rect = carouselRef.current.getBoundingClientRect();
       mousePos.current = {
@@ -174,6 +178,7 @@ export default function MediaCarousel({
       };
       snapPendingRef.current = true;
       hoverCenterIndexRef.current = null;
+      hoverLockPointerRef.current = null;
     }
   };
 
@@ -184,6 +189,7 @@ export default function MediaCarousel({
     e.preventDefault();
     snapPendingRef.current = false;
     hoverCenterIndexRef.current = null;
+    hoverLockPointerRef.current = null;
     isWheelScrollingRef.current = true;
     setOffset((prev) => normalizeOffset(prev - e.deltaX));
 
@@ -268,8 +274,20 @@ export default function MediaCarousel({
                   !isWheelScrollingRef.current &&
                   !wasEdgeScrollingRef.current
                 ) {
+                  const pointer = pointerClientPosRef.current;
+                  const lock = hoverLockPointerRef.current;
+                  const pointerMovedEnough =
+                    !lock ||
+                    Math.abs(pointer.x - lock.x) > 24 ||
+                    Math.abs(pointer.y - lock.y) > 24;
+
+                  if (!pointerMovedEnough) {
+                    return;
+                  }
+
                   snapPendingRef.current = false;
                   hoverCenterIndexRef.current = index;
+                  hoverLockPointerRef.current = pointer;
                 }
               }}
               sx={{
@@ -284,9 +302,10 @@ export default function MediaCarousel({
                 overflow: "hidden",
                 boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
                 cursor: "pointer",
-                transform: `translateX(${x}px) scale(${scale})`,
+                transform: `translate3d(${x}px, 0, 0) scale(${scale})`,
                 zIndex: Math.round(100 - distanceFromCenter / 10),
-                transition: "box-shadow 0.3s, transform 0.1s linear",
+                willChange: "transform",
+                transition: "box-shadow 0.3s ease",
                 "&:hover": {
                   boxShadow: "0 0 20px #F5C518", // Yellow glow on hover
                   zIndex: 1000,

@@ -21,8 +21,12 @@ import type { ReactNode } from "react";
 
 import Logo from "@/components/Logo";
 import SignInButton from "@/components/SignInButton";
-import SignOutButton from "@/components/SignOutButton";
+import UserAccountMenu from "@/components/UserAccountMenu";
 import { APP_CONFIG } from "@/config";
+import {
+  DEV_AUTH_SIMULATION_ENABLED,
+  getEffectiveUser,
+} from "@/lib/dev-user";
 
 /**
  * App shell rendered by the `(dashboard)` route group: top AppBar with
@@ -32,7 +36,8 @@ import { APP_CONFIG } from "@/config";
  */
 export default function DashboardShell({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
-  const signedIn = status === "authenticated";
+  const user = getEffectiveUser(session?.user);
+  const signedIn = status === "authenticated" || DEV_AUTH_SIMULATION_ENABLED;
 
   return (
     <section>
@@ -138,15 +143,9 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
               <CircularProgress size={20} color="inherit" />
             )}
             {status !== "loading" && signedIn && (
-              <>
-                <Typography
-                  variant="body2"
-                  sx={{ display: { xs: "none", md: "block" } }}
-                >
-                  {session?.user?.email ?? session?.user?.name ?? "Signed in"}
-                </Typography>
-                <SignOutButton />
-              </>
+              <UserAccountMenu
+                label={user?.name ?? user?.email ?? "Signed in"}
+              />
             )}
             {status !== "loading" && !signedIn && <SignInButton />}
           </Box>
