@@ -16,6 +16,7 @@ import AppNavBar from "@/components/AppNavBar";
 import ReviewExcerpt from "@/components/ReviewExcerpt";
 import UserReviewBox from "@/components/UserReviewBox";
 import UserRatingStars from "@/components/UserRatingStars";
+import { getMovieById, getTVShowById } from "@/lib/fetchAPI";
 import {
   enrichedMovie,
   enrichedTV,
@@ -26,6 +27,10 @@ import { apiGet, ApiError } from "@/lib/api";
 import HorizontalScroller from "@/components/HorizontalScroller";
 import { auth } from "@/lib/auth";
 import { getEffectiveUser } from "@/lib/dev-user";
+import type {
+  MovieDetail as RawMovieDetail,
+  TVShowDetail as RawTVShowDetail,
+} from "@/types/backendObjects";
 import type {
   CastMember,
   MovieDetail,
@@ -54,16 +59,25 @@ export default async function MediaDetailPage({ params }: PageProps) {
 
   let tmdb: MovieDetail | TVDetail;
   let community: Community;
+  let tmdbRating: number | null = null;
 
   try {
     if (type === "movie") {
-      const data = await enrichedMovie(id);
+      const [data, rawDetail] = await Promise.all([
+        enrichedMovie(id),
+        getMovieById(Number(id)),
+      ]);
       tmdb = data.tmdb;
       community = data.community;
+      tmdbRating = (rawDetail as RawMovieDetail).rating;
     } else {
-      const data = await enrichedTV(id);
+      const [data, rawDetail] = await Promise.all([
+        enrichedTV(id),
+        getTVShowById(Number(id)),
+      ]);
       tmdb = data.tmdb;
       community = data.community;
+      tmdbRating = (rawDetail as RawTVShowDetail).rating;
     }
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) notFound();
@@ -335,6 +349,14 @@ export default async function MediaDetailPage({ params }: PageProps) {
                 {tmdb.genres.map((g) => (
                   <Chip key={g.id} label={g.name ?? g.id} size="small" />
                 ))}
+                {typeof tmdbRating === "number" && (
+                  <Chip
+                    label={`TMDB ${tmdbRating.toFixed(2)}/10`}
+                    size="small"
+                    variant="outlined"
+                    color="primary"
+                  />
+                )}
               </Box>
 
               {/* Community rating */}
