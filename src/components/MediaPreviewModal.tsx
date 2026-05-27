@@ -233,7 +233,7 @@ export default function MediaPreviewModal({
                       <Box
                         key={idx}
                         component={Link}
-                        href={`/cast/${encodeURIComponent(member.name)}`}
+                        href={`/cast/${encodeURIComponent(member.name)}?image=${encodeURIComponent(member.profileUrl ?? "")}`}
                         sx={{
                           minWidth: "100px",
                           textAlign: "center",

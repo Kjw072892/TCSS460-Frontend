@@ -1,4 +1,4 @@
-import { Box, Container, Divider, Stack, Typography } from "@mui/material";
+import { Avatar, Box, Container, Divider, Stack, Typography } from "@mui/material";
 
 import AppNavBar from "@/components/AppNavBar";
 import MediaCard from "@/components/MediaCard";
@@ -8,6 +8,7 @@ import type { MovieSummary, TVSummary } from "@/types/media";
 
 interface PageProps {
   params: Promise<{ name: string }>;
+  searchParams: Promise<{ image?: string }>;
 }
 
 async function fetchAllMovieCredits(name: string) {
@@ -91,9 +92,14 @@ function ResultsGrid({
   );
 }
 
-export default async function CastFilmographyPage({ params }: PageProps) {
+export default async function CastFilmographyPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { name } = await params;
+  const { image } = await searchParams;
   const castName = decodeURIComponent(name);
+  const castImage = image ? decodeURIComponent(image) : "";
 
   const [movies, tvShows] = await Promise.all([
     fetchAllMovieCredits(castName),
@@ -109,21 +115,47 @@ export default async function CastFilmographyPage({ params }: PageProps) {
       <AppNavBar callbackUrl={`${APP_CONFIG.routes.search}`} />
       <Container maxWidth="xl" sx={{ py: 4 }}>
         <Stack spacing={4}>
-          <Box>
-            <Typography
-              variant="overline"
-              sx={{ color: "primary.main", letterSpacing: 1.2 }}
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2.5}
+            alignItems={{ xs: "flex-start", sm: "center" }}
+          >
+            <Avatar
+              src={castImage || undefined}
+              alt={castName}
+              sx={{
+                width: { xs: 84, md: 104 },
+                height: { xs: 84, md: 104 },
+                bgcolor: "primary.main",
+                color: "primary.contrastText",
+                fontSize: { xs: 28, md: 36 },
+                fontWeight: 700,
+              }}
             >
-              Cast Filmography
-            </Typography>
-            <Typography variant="h4" component="h1" fontWeight="bold">
-              {castName}
-            </Typography>
-            <Typography color="text.secondary" sx={{ mt: 1 }}>
-              {totalTitles.toLocaleString()} title
-              {totalTitles !== 1 ? "s" : ""} found across movies and TV shows.
-            </Typography>
-          </Box>
+              {castName
+                .split(" ")
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((part) => part[0]?.toUpperCase())
+                .join("")}
+            </Avatar>
+
+            <Box>
+              <Typography
+                variant="overline"
+                sx={{ color: "primary.main", letterSpacing: 1.2 }}
+              >
+                Cast Filmography
+              </Typography>
+              <Typography variant="h4" component="h1" fontWeight="bold">
+                {castName}
+              </Typography>
+              <Typography color="text.secondary" sx={{ mt: 1 }}>
+                {totalTitles.toLocaleString()} title
+                {totalTitles !== 1 ? "s" : ""} found across movies and TV shows.
+              </Typography>
+            </Box>
+          </Stack>
 
           <Divider />
 

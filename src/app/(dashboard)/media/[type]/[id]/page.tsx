@@ -542,7 +542,7 @@ export default async function MediaDetailPage({ params }: PageProps) {
                   <Box
                     key={`${member.name}-${member.character}`}
                     component={Link}
-                    href={`/cast/${encodeURIComponent(member.name)}`}
+                    href={`/cast/${encodeURIComponent(member.name)}?image=${encodeURIComponent(member.profileUrl ?? "")}`}
                     sx={{
                       minWidth: 90,
                       maxWidth: 90,
