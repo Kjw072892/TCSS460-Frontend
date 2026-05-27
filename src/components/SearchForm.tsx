@@ -33,8 +33,8 @@ interface Props {
 
 export default function SearchForm({
   initialQ = "",
-  initialMovies = true,
-  initialTV = true,
+  initialMovies = false,
+  initialTV = false,
   initialYear = "",
   initialGenreId = "",
   destination = "/search",
@@ -49,14 +49,15 @@ export default function SearchForm({
   const [genreId, setGenreId] = useState(initialGenreId);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
-  const hasCriteria = includeMovies || includeTV;
-  const canSearch = hasCriteria && Boolean(q.trim());
+  const canSearch = Boolean(q.trim());
   const open = Boolean(anchorEl);
+  const showDefaultHelper = !includeMovies && !includeTV;
   const activeFilterCount = useMemo(() => {
     let count = 0;
+    if (includeMovies) count += 1;
+    if (includeTV) count += 1;
     if (year.trim()) count += 1;
     if (genreId.trim()) count += 1;
-    if (!includeMovies || !includeTV) count += 1;
     return count;
   }, [genreId, includeMovies, includeTV, year]);
 
@@ -77,21 +78,19 @@ export default function SearchForm({
   }
 
   function resetFilters() {
-    setIncludeMovies(true);
-    setIncludeTV(true);
+    setIncludeMovies(false);
+    setIncludeTV(false);
     setYear("");
     setGenreId("");
   }
 
   const filterSummary = [
     !includeMovies || !includeTV
-      ? includeMovies && includeTV
-        ? "Movies + TV"
-        : includeMovies
+      ? includeMovies
           ? "Movies only"
           : includeTV
             ? "TV only"
-            : "No media type selected"
+            : null
       : null,
     year.trim() ? `Year ${year.trim()}` : null,
     genreId.trim()
@@ -115,6 +114,7 @@ export default function SearchForm({
     >
       <TextField
         label="Search"
+        helperText="Search by title or cast member."
         value={q}
         onChange={(e) => setQ(e.target.value)}
         variant="outlined"
@@ -122,6 +122,9 @@ export default function SearchForm({
         sx={{
           flexGrow: 1,
           minWidth: compact ? { xs: "100%", md: 520 } : { xs: "100%", sm: 260 },
+          "& .MuiFormHelperText-root": {
+            color: "text.disabled",
+          },
         }}
         autoFocus={!compact}
       />
@@ -154,17 +157,6 @@ export default function SearchForm({
 
       {signInCallbackUrl && (
         <HomeSignInButton callbackUrl={signInCallbackUrl} />
-      )}
-
-      {!compact && (
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ width: "100%" }}
-        >
-          Search by title or use the filters to browse by media type, year, or
-          genre.
-        </Typography>
       )}
 
       {!!filterSummary && (
@@ -218,9 +210,9 @@ export default function SearchForm({
             />
           </FormGroup>
 
-          {!hasCriteria && (
-            <Typography variant="caption" color="warning.main">
-              Select at least one media type.
+          {showDefaultHelper && (
+            <Typography variant="caption" color="text.disabled">
+              Search defaults to movies and TV shows.
             </Typography>
           )}
 

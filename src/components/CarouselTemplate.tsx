@@ -50,6 +50,10 @@ export default function MediaCarousel({
   const cardWidth = 180;
   const spacing = 220;
   const labelHeight = 56;
+  const hoverEaseFactor = 0.1;
+  const snapEaseFactor = 0.08;
+  const wheelScrollFactor = 0.65;
+  const touchScrollFactor = 0.65;
   const totalWidth = itemCount * spacing;
   const minOffset = -(Math.max(itemCount - 1, 0) * spacing);
 
@@ -151,7 +155,7 @@ export default function MediaCarousel({
             return target;
           }
 
-          return prev + delta * 0.18;
+          return prev + delta * hoverEaseFactor;
         });
       } else if (
         !isPreviewOpen &&
@@ -169,7 +173,7 @@ export default function MediaCarousel({
             return snapped;
           }
 
-          return prev + delta * 0.14;
+          return prev + delta * snapEaseFactor;
         });
       }
 
@@ -233,6 +237,8 @@ export default function MediaCarousel({
     itemCount,
     items,
     normalizeOffset,
+    hoverEaseFactor,
+    snapEaseFactor,
     spacing,
     totalWidth,
   ]);
@@ -277,7 +283,7 @@ export default function MediaCarousel({
     hoverCenterIndexRef.current = null;
     hoverLockPointerRef.current = null;
     isWheelScrollingRef.current = true;
-    setOffset((prev) => normalizeOffset(prev - e.deltaX));
+    setOffset((prev) => normalizeOffset(prev - e.deltaX * wheelScrollFactor));
 
     if (wheelStopTimeoutRef.current) clearTimeout(wheelStopTimeoutRef.current);
     wheelStopTimeoutRef.current = setTimeout(() => {
@@ -337,7 +343,7 @@ export default function MediaCarousel({
 
     if (touchDraggingRef.current) {
       e.preventDefault();
-      setOffset((prev) => normalizeOffset(prev + deltaX));
+      setOffset((prev) => normalizeOffset(prev + deltaX * touchScrollFactor));
     }
 
     touchDragLastXRef.current = touch.clientX;
