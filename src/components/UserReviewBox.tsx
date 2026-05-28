@@ -104,7 +104,7 @@ export default function UserReviewBox({
 
       <Box sx={{ display: "grid", gap: 1.5 }}>
         <TextField
-          placeholder="Review title (optional)"
+          placeholder="Review title"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           fullWidth
@@ -112,7 +112,7 @@ export default function UserReviewBox({
           disabled={submitting}
           slotProps={{
             htmlInput: {
-              "aria-label": "Review title (optional)",
+              "aria-label": "Review title",
             },
           }}
         />
