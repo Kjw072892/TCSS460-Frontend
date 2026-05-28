@@ -679,6 +679,8 @@ export default async function MediaDetailPage({ params }: PageProps) {
               <Divider />
               <UserReviewBox
                 username={user.name || user.email || "Signed in user"}
+                tmdbId={Number(id)}
+                mediaType={type as "movie" | "tv"}
               />
             </>
           )}

@@ -76,17 +76,19 @@ export default function UserAccountMenu({ label }: UserAccountMenuProps) {
           />
         </MenuItem>
 
-        <MenuItem disabled onClick={handleClose}>
+        <MenuItem
+          component={Link}
+          href={APP_CONFIG.routes.userReviews}
+          onClick={handleClose}
+        >
           <RateReviewOutlinedIcon
             fontSize="small"
             sx={{ mr: 1.5, opacity: 0.7 }}
           />
           <ListItemText
             primary="Reviews, ratings, and comments"
-            secondary="Coming soon"
             slotProps={{
               primary: { sx: { color: "rgba(255,255,255,0.85)" } },
-              secondary: { sx: { color: "rgba(255,255,255,0.5)" } },
             }}
           />
         </MenuItem>

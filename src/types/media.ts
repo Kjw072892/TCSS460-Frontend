@@ -145,3 +145,22 @@ export interface MyRatingListResponse {
   totalPages: number;
   results: RatingRecord[];
 }
+
+export interface ReviewRecord {
+  id: number;
+  tmdbId: number;
+  mediaType: MediaType;
+  title: string | null;
+  body: string;
+  userId: number;
+  author?: RatingAuthor;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MyReviewListResponse {
+  totalReviews: number;
+  page: number;
+  totalPages: number;
+  results: ReviewRecord[];
+}

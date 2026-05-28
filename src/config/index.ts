@@ -25,6 +25,7 @@ export const APP_CONFIG = {
     messagesSend: "/messages/send",
     debug: "/debug",
     profile: "/profile",
+    userReviews: "/profile/reviews",
     search: "/search",
   },
 } as const;
