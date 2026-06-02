@@ -17,7 +17,9 @@ export default function MediaCarousel({
   mediaType,
   infinite = true,
 }: MediaCarouselProps) {
-  const [offset, setOffset] = useState(0);
+  // offset is now a ref to prevent 60fps React re-renders
+  const offsetRef = useRef(0);
+  
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [highlightedId, setHighlightedId] = useState<number | null>(
     items[0]?.id ?? null,
@@ -29,9 +31,7 @@ export default function MediaCarousel({
   const requestRef = useRef<number>(null);
   const snapPendingRef = useRef(false);
   const wasEdgeScrollingRef = useRef(false);
-  const wheelStopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
+  const wheelStopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isWheelScrollingRef = useRef(false);
   const hoverCenterIndexRef = useRef<number | null>(null);
   const pointerClientPosRef = useRef({ x: 0, y: 0 });
@@ -40,11 +40,8 @@ export default function MediaCarousel({
   const touchDragLastXRef = useRef<number | null>(null);
   const touchDraggingRef = useRef(false);
   const preventClickRef = useRef(false);
-  const offsetRef = useRef(0);
   const centerCandidateIndexRef = useRef<number | null>(null);
-  const centerHighlightTimeoutRef = useRef<ReturnType<
-    typeof setTimeout
-  > | null>(null);
+  const centerHighlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const itemCount = items.length;
   const cardWidth = 180;
@@ -62,7 +59,6 @@ export default function MediaCarousel({
       if (!infinite || totalWidth <= 0) {
         return Math.min(0, Math.max(minOffset, value));
       }
-
       return value % totalWidth;
     },
     [infinite, minOffset, totalWidth],
@@ -84,18 +80,12 @@ export default function MediaCarousel({
   }, []);
 
   useEffect(() => {
-    offsetRef.current = offset;
-  }, [offset]);
-
-  useEffect(() => {
     setHighlightedId(items[0]?.id ?? null);
     centerCandidateIndexRef.current = null;
   }, [items]);
 
   useEffect(() => {
-    if (isPreviewOpen) {
-      return;
-    }
+    if (isPreviewOpen) return;
 
     isWheelScrollingRef.current = false;
     snapPendingRef.current = true;
@@ -129,6 +119,7 @@ export default function MediaCarousel({
         snapPendingRef.current = true;
       }
 
+      // Physics logic updated to mutate offsetRef directly
       if (
         !isPreviewOpen &&
         !isEdgeScrolling &&
@@ -136,73 +127,60 @@ export default function MediaCarousel({
         hoverCenterIndexRef.current != null &&
         totalWidth > 0
       ) {
-        setOffset((prev) => {
-          const baseTarget = -hoverCenterIndexRef.current! * spacing;
-          const target = infinite
-            ? [
-                baseTarget - totalWidth,
-                baseTarget,
-                baseTarget + totalWidth,
-              ].reduce((closest, candidate) =>
-                Math.abs(candidate - prev) < Math.abs(closest - prev)
-                  ? candidate
-                  : closest,
-              )
-            : normalizeOffset(baseTarget);
-          const delta = target - prev;
+        const baseTarget = -hoverCenterIndexRef.current! * spacing;
+        const target = infinite
+          ? [
+              baseTarget - totalWidth,
+              baseTarget,
+              baseTarget + totalWidth,
+            ].reduce((closest, candidate) =>
+              Math.abs(candidate - offsetRef.current) < Math.abs(closest - offsetRef.current)
+                ? candidate
+                : closest,
+            )
+          : normalizeOffset(baseTarget);
+          
+        const delta = target - offsetRef.current;
 
-          if (Math.abs(delta) < 0.5) {
-            return target;
-          }
-
-          return prev + delta * hoverEaseFactor;
-        });
+        if (Math.abs(delta) < 0.5) {
+          offsetRef.current = target;
+        } else {
+          offsetRef.current += delta * hoverEaseFactor;
+        }
       } else if (
         !isPreviewOpen &&
         !isEdgeScrolling &&
         snapPendingRef.current &&
         totalWidth > 0
       ) {
-        setOffset((prev) => {
-          const nearestIndex = Math.round(prev / spacing);
-          const snapped = nearestIndex * spacing;
-          const delta = snapped - prev;
+        const nearestIndex = Math.round(offsetRef.current / spacing);
+        const snapped = nearestIndex * spacing;
+        const delta = snapped - offsetRef.current;
 
-          if (Math.abs(delta) < 0.5) {
-            snapPendingRef.current = false;
-            return snapped;
-          }
-
-          return prev + delta * snapEaseFactor;
-        });
+        if (Math.abs(delta) < 0.5) {
+          snapPendingRef.current = false;
+          offsetRef.current = snapped;
+        } else {
+          offsetRef.current += delta * snapEaseFactor;
+        }
       }
 
       wasEdgeScrollingRef.current = isEdgeScrolling;
 
+      // O(1) Math to find center item instead of items.reduce
       if (!isPreviewOpen && itemCount > 0) {
         const currentOffset = offsetRef.current;
-        const nearestIndex = items.reduce((closestIndex, _item, index) => {
-          let x = index * spacing + currentOffset;
-
-          if (infinite && totalWidth > 0) {
-            x = x % totalWidth;
-            if (x > totalWidth / 2) x -= totalWidth;
-            if (x < -totalWidth / 2) x += totalWidth;
-          }
-
-          if (closestIndex === -1) {
-            return index;
-          }
-
-          let closestX = closestIndex * spacing + currentOffset;
-          if (infinite && totalWidth > 0) {
-            closestX = closestX % totalWidth;
-            if (closestX > totalWidth / 2) closestX -= totalWidth;
-            if (closestX < -totalWidth / 2) closestX += totalWidth;
-          }
-
-          return Math.abs(x) < Math.abs(closestX) ? index : closestIndex;
-        }, -1);
+        let nearestIndex = Math.round(Math.abs(currentOffset) / spacing);
+        
+        if (infinite && totalWidth > 0) {
+           // Handle negative offset wrapping
+           nearestIndex = currentOffset <= 0 
+             ? Math.round(Math.abs(currentOffset) / spacing) % itemCount
+             : (itemCount - (Math.round(currentOffset / spacing) % itemCount)) % itemCount;
+        } else if (!infinite) {
+           nearestIndex = Math.round(Math.abs(currentOffset) / spacing);
+           nearestIndex = Math.max(0, Math.min(nearestIndex, itemCount - 1));
+        }
 
         if (nearestIndex !== centerCandidateIndexRef.current) {
           centerCandidateIndexRef.current = nearestIndex;
@@ -220,16 +198,42 @@ export default function MediaCarousel({
         }
       }
 
+      // Direct DOM Mutation for 60fps rendering without React state updates
+      if (carouselRef.current) {
+        const itemNodes = carouselRef.current.querySelectorAll('.carousel-item');
+        itemNodes.forEach((node, index) => {
+          const el = node as HTMLElement;
+          let x = index * spacing + offsetRef.current;
+
+          if (infinite && totalWidth > 0) {
+            x = x % totalWidth;
+            if (x > totalWidth / 2) x -= totalWidth;
+            if (x < -totalWidth / 2) x += totalWidth;
+          }
+
+          const distanceFromCenter = Math.abs(x);
+          const scale = Math.max(0.8, 1.1 - distanceFromCenter / 1000);
+          const centerProximity = Math.max(0, 1 - distanceFromCenter / 900);
+          const imageBrightness = 0.62 + centerProximity * 0.55;
+
+          el.style.transform = `translate3d(${x}px, 0, 0) scale(${scale})`;
+          el.style.zIndex = Math.round(100 - distanceFromCenter / 10).toString();
+
+          const poster = el.querySelector('.poster-image') as HTMLElement;
+          if (poster) {
+             poster.style.filter = `brightness(${imageBrightness})`;
+          }
+        });
+      }
+
       requestRef.current = requestAnimationFrame(animate);
     };
 
     requestRef.current = requestAnimationFrame(animate);
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
-      if (wheelStopTimeoutRef.current)
-        clearTimeout(wheelStopTimeoutRef.current);
-      if (centerHighlightTimeoutRef.current)
-        clearTimeout(centerHighlightTimeoutRef.current);
+      if (wheelStopTimeoutRef.current) clearTimeout(wheelStopTimeoutRef.current);
+      if (centerHighlightTimeoutRef.current) clearTimeout(centerHighlightTimeoutRef.current);
     };
   }, [
     infinite,
@@ -245,7 +249,6 @@ export default function MediaCarousel({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (isPreviewOpen) return;
-
     pointerClientPosRef.current = { x: e.clientX, y: e.clientY };
 
     if (carouselRef.current) {
@@ -259,13 +262,9 @@ export default function MediaCarousel({
 
   const handleMouseLeave = () => {
     if (isPreviewOpen) return;
-
     if (carouselRef.current) {
       const { width } = carouselRef.current.getBoundingClientRect();
-      mousePos.current = {
-        width,
-        x: width / 2,
-      };
+      mousePos.current = { width, x: width / 2 };
       snapPendingRef.current = true;
       hoverCenterIndexRef.current = null;
       hoverLockPointerRef.current = null;
@@ -274,7 +273,6 @@ export default function MediaCarousel({
 
   const handleWheel = (e: React.WheelEvent) => {
     if (isPreviewOpen) return;
-
     const horizontalIntent = Math.abs(e.deltaX) > Math.abs(e.deltaY);
     if (!horizontalIntent) return;
 
@@ -283,7 +281,8 @@ export default function MediaCarousel({
     hoverCenterIndexRef.current = null;
     hoverLockPointerRef.current = null;
     isWheelScrollingRef.current = true;
-    setOffset((prev) => normalizeOffset(prev - e.deltaX * wheelScrollFactor));
+    
+    offsetRef.current = normalizeOffset(offsetRef.current - e.deltaX * wheelScrollFactor);
 
     if (wheelStopTimeoutRef.current) clearTimeout(wheelStopTimeoutRef.current);
     wheelStopTimeoutRef.current = setTimeout(() => {
@@ -305,10 +304,7 @@ export default function MediaCarousel({
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (isPreviewOpen) {
-      return;
-    }
-
+    if (isPreviewOpen) return;
     const touch = e.touches[0];
     touchDragStartXRef.current = touch.clientX;
     touchDragLastXRef.current = touch.clientX;
@@ -321,17 +317,12 @@ export default function MediaCarousel({
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (isPreviewOpen) {
-      return;
-    }
-
+    if (isPreviewOpen) return;
     const touch = e.touches[0];
     const lastX = touchDragLastXRef.current;
     const startX = touchDragStartXRef.current;
 
-    if (lastX == null || startX == null) {
-      return;
-    }
+    if (lastX == null || startX == null) return;
 
     const deltaX = touch.clientX - lastX;
     const totalDelta = touch.clientX - startX;
@@ -343,17 +334,14 @@ export default function MediaCarousel({
 
     if (touchDraggingRef.current) {
       e.preventDefault();
-      setOffset((prev) => normalizeOffset(prev + deltaX * touchScrollFactor));
+      offsetRef.current = normalizeOffset(offsetRef.current + deltaX * touchScrollFactor);
     }
 
     touchDragLastXRef.current = touch.clientX;
   };
 
   const handleTouchEnd = () => {
-    if (isPreviewOpen) {
-      return;
-    }
-
+    if (isPreviewOpen) return;
     touchDragStartXRef.current = null;
     touchDragLastXRef.current = null;
     isWheelScrollingRef.current = false;
@@ -396,32 +384,13 @@ export default function MediaCarousel({
         }}
       >
         {items.map((item, index) => {
-          // Calculate horizontal position with wrapping
-          let x = index * spacing + offset;
-
-          if (infinite && totalWidth > 0) {
-            x = x % totalWidth;
-
-            // Center the wrapping window around 0
-            if (x > totalWidth / 2) x -= totalWidth;
-            if (x < -totalWidth / 2) x += totalWidth;
-          }
-
-          // Subtle scale effect for cards near the center
-          const distanceFromCenter = Math.abs(x);
-          const scale = Math.max(0.8, 1.1 - distanceFromCenter / 1000);
-          const centerProximity = Math.max(0, 1 - distanceFromCenter / 900);
-          const imageBrightness = 0.62 + centerProximity * 0.55;
-
           return (
             <Box
               key={item.id}
+              className="carousel-item"
               onClick={() => handleItemClick(item.id)}
               onMouseEnter={() => {
-                if (
-                  !isWheelScrollingRef.current &&
-                  !wasEdgeScrollingRef.current
-                ) {
+                if (!isWheelScrollingRef.current && !wasEdgeScrollingRef.current) {
                   const pointer = pointerClientPosRef.current;
                   const lock = hoverLockPointerRef.current;
                   const pointerMovedEnough =
@@ -429,9 +398,7 @@ export default function MediaCarousel({
                     Math.abs(pointer.x - lock.x) > 24 ||
                     Math.abs(pointer.y - lock.y) > 24;
 
-                  if (!pointerMovedEnough) {
-                    return;
-                  }
+                  if (!pointerMovedEnough) return;
 
                   snapPendingRef.current = false;
                   hoverCenterIndexRef.current = index;
@@ -457,13 +424,11 @@ export default function MediaCarousel({
                     ? "0 0 0 1px rgba(245,197,24,0.55), 0 0 24px rgba(245,197,24,0.45), 0 10px 30px rgba(0,0,0,0.5)"
                     : "0 10px 30px rgba(0,0,0,0.5)",
                 cursor: "pointer",
-                transform: `translate3d(${x}px, 0, 0) scale(${scale})`,
-                zIndex: Math.round(100 - distanceFromCenter / 10),
                 willChange: "transform",
                 transition: "border-color 0.2s ease, box-shadow 0.3s ease",
                 "&:hover": {
-                  boxShadow: "0 0 20px #F5C518", // Yellow glow on hover
-                  zIndex: 1000,
+                  boxShadow: "0 0 20px #F5C518",
+                  zIndex: "1000 !important",
                   "& .poster-image": {
                     transform: "scale(1.05)",
                   },
@@ -492,7 +457,6 @@ export default function MediaCarousel({
                   sizes="180px"
                   style={{
                     objectFit: "cover",
-                    filter: `brightness(${imageBrightness})`,
                   }}
                 />
               </Box>
@@ -504,7 +468,7 @@ export default function MediaCarousel({
                   justifyContent: "center",
                   minHeight: `${labelHeight}px`,
                   background: "transparent",
-                  color: "#F5C518", // Yellow text
+                  color: "#F5C518",
                   px: 1.5,
                   py: 1,
                   textAlign: "center",
